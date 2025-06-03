@@ -1,47 +1,428 @@
-To implement caching for the header and core bundles in your React application built with Rsbuild, you can use several strategies to ensure that your application remains functional even if the URL sources for these bundles become unavailable. Below, I outline the primary alternatives for caching these bundles, focusing on practical solutions that align with your setup.
+I understand you’re looking for a caching solution where a **Cache URL Source** acts as an intermediary between the **Original URL Source** and your **React Application**, with the cache periodically polling the original source to keep the bundles updated. This setup provides redundancy if the original source goes down, as the React application can rely on the cache source. Below, I’ll outline how to implement this scenario, focusing on alternatives for the **Cache URL Source** and how it can poll the original source, integrated with your Rsbuild-based React application.
 
-### 1. **Service Worker Caching**
-Service workers are a powerful way to cache assets like JavaScript bundles for offline or unreliable network scenarios.
+### Scenario Overview
+- **Original URL Source**: The primary server/CDN hosting the `header.bundle.js` and `core.bundle.js` (e.g., `https://original-cdn.com`).
+- **Cache URL Source**: A secondary service that caches the bundles, periodically polls the original source for updates, and serves the bundles to the React application.
+- **React Application**: Fetches bundles from the Cache URL Source, with fallback logic if the cache is unavailable.
+- **Polling Mechanism**: The Cache URL Source periodically checks the Original URL Source for updated bundles (e.g., based on version, hash, or timestamp).
 
-- **How it Works**: A service worker acts as a proxy between your application and the network, intercepting requests for your bundles and serving cached versions when the network is unavailable.
+### Alternatives for the Cache URL Source
+Here are the primary options for implementing the Cache URL Source, including polling and integration with your React application:
+
+#### 1. **Custom Caching Server (e.g., Node.js with Express)**
+Set up a custom server that caches bundles, polls the original source, and serves the bundles to your React application.
+
+- **How it Works**:
+  - A Node.js server (e.g., using Express) periodically fetches `header.bundle.js` and `core.bundle.js` from the Original URL Source.
+  - The server stores the bundles in memory (e.g., using a simple object) or on disk (e.g., in a temporary directory).
+  - The server exposes endpoints (e.g., `/cache/header.bundle.js`, `/cache/core.bundle.js`) for the React application to fetch the bundles.
+  - Polling is implemented using a cron job or `setInterval` to check for updates (e.g., every 5 minutes).
 - **Implementation**:
-  - Use a library like **Workbox** to simplify service worker setup.
-  - Configure the service worker to cache the header and core bundles during the `install` event.
-  - Serve cached bundles during the `fetch` event if the network request fails.
-  - Example configuration with Workbox in your Rsbuild project:
+  ```javascript
+  // server.js
+  const express = require('express');
+  const axios = require('axios');
+  const app = express();
+  const port = 3000;
+
+  // In-memory cache
+  let bundleCache = {
+    header: null,
+    core: null,
+  };
+
+  // Original URLs
+  const originalUrls = {
+    header: 'https://original-cdn.com/header.bundle.js',
+    core: 'https://original-cdn.com/core.bundle.js',
+  };
+
+  // Poll original source every 5 minutes
+  async function pollBundles() {
+    try {
+      const headerResponse = await axios.get(originalUrls.header);
+      const coreResponse = await axios.get(originalUrls.core);
+      if (headerResponse.status === 200) {
+        bundleCache.header = headerResponse.data;
+      }
+      if (coreResponse.status === 200) {
+        bundleCache.core = coreResponse.data;
+      }
+      console.log('Bundles updated:', new Date());
+    } catch (error) {
+      console.error('Polling error:', error.message);
+    }
+  }
+
+  // Initial poll and schedule every 5 minutes
+  pollBundles();
+  setInterval(pollBundles, 5 * 60 * 1000);
+
+  // Serve cached bundles
+  app.get('/cache/header.bundle.js', (req, res) => {
+    if (bundleCache.header) {
+      res.set('Content-Type', 'application/javascript');
+      res.send(bundleCache.header);
+    } else {
+      res.status(503).send('Bundle not available');
+    }
+  });
+
+  app.get('/cache/core.bundle.js', (req, res) => {
+    if (bundleCache.core) {
+      res.set('Content-Type', 'application/javascript');
+      res.send(bundleCache.core);
+    } else {
+      res.status(503).send('Bundle not available');
+    }
+  });
+
+  app.listen(port, () => {
+    console.log(`Cache server running on port ${port}`);
+  });
+  ```
+  ```javascript
+  const express = require('express');
+  const axios = require('axios');
+  const app = express();
+  const port = 3000;
+
+  let bundleCache = {
+    header: null,
+    core: null,
+  };
+
+  const originalUrls = {
+    header: 'https://original-cdn.com/header.bundle.js',
+    core: 'https://original-cdn.com/core.bundle.js',
+  };
+
+  async function pollBundles() {
+    try {
+      const headerResponse = await axios.get(originalUrls.header);
+      const coreResponse = await axios.get(originalUrls.core);
+      if (headerResponse.status === 200) {
+        bundleCache.header = headerResponse.data;
+      }
+      if (coreResponse.status === 200) {
+        bundleCache.core = coreResponse.data;
+      }
+      console.log('Bundles updated:', new Date());
+    } catch (error) {
+      console.error('Polling error:', error.message);
+    }
+  }
+
+  pollBundles();
+  setInterval(pollBundles, 5 * 60 * 1000);
+
+  app.get('/cache/header.bundle.js', (req, res) => {
+    if (bundleCache.header) {
+      res.set('Content-Type', 'application/javascript');
+      res.send(bundleCache.header);
+    } else {
+      res.status(503).send('Bundle not available');
+    }
+  });
+
+  app.get('/cache/core.bundle.js', (req, res) => {
+    if (bundleCache.core) {
+      res.set('Content-Type', 'application/javascript');
+      res.send(bundleCache.core);
+    } else {
+      res.status(503).send('Bundle not available');
+    }
+  });
+
+  app.listen(port, () => {
+    console.log(`Cache server running on port ${port}`);
+  });
+  ```
+- **React Application Integration**:
+  - Update your React application to fetch bundles from the cache server (e.g., `http://cache-server:3000/cache/header.bundle.js`).
+  - Example:
+    ```javascript
+    async function loadBundles() {
+      const headerBundle = await fetch('http://cache-server:3000/cache/header.bundle.js').then(res => res.text());
+      const coreBundle = await fetch('http://cache-server:3000/cache/core.bundle.js').then(res => res.text());
+      // Load and mount bundles
+    }
+    ```
+- **Rsbuild Integration**:
+  - No specific Rsbuild changes are needed, but ensure your application’s bundle-loading logic points to the cache server’s URLs.
+  - If you want to fallback to the original source, modify the fetch logic:
+    ```javascript
+    async function loadBundleWithFallback(cacheUrl, originalUrl) {
+      try {
+        const response = await fetch(cacheUrl);
+        if (response.ok) return response.text();
+      } catch {
+        const response = await fetch(originalUrl);
+        return response.text();
+      }
+    }
+    ```
+- **Pros**:
+  - Full control over polling frequency and cache logic.
+  - Can be hosted on your infrastructure (e.g., AWS EC2, Heroku).
+  - Easy to extend with additional logic (e.g., versioning, logging).
+- **Cons**:
+  - Requires maintaining a separate server.
+  - Increases operational complexity and cost.
+  - Polling may miss updates if the interval is too long.
+
+#### 2. **CDN with Caching and Polling**
+Use a CDN with built-in caching and origin polling capabilities (e.g., Cloudflare, Akamai, or AWS CloudFront).
+
+- **How it Works**:
+  - Configure the CDN to cache bundles from the Original URL Source.
+  - Set the CDN’s cache TTL (Time to Live) to a reasonable duration (e.g., 1 hour).
+  - The CDN periodically polls the original source based on the TTL or a custom schedule.
+  - The React application fetches bundles from the CDN’s URLs.
+- **Implementation**:
+  - **Cloudflare Example**:
+    - Set up a Cloudflare zone for your cache URL (e.g., `cache.yourdomain.com`).
+    - Configure the origin server as `https://original-cdn.com`.
+    - Set cache rules with a TTL (e.g., `Cache-Control: max-age=3600`).
+    - Enable Cloudflare’s **Origin Cache Control** to respect the original source’s cache headers.
+    - Optionally, use Cloudflare Workers to customize polling logic:
+      ```javascript
+      // Cloudflare Worker
+      addEventListener('scheduled', event => {
+        event.waitUntil(
+          fetch('https://original-cdn.com/header.bundle.js').then(res => {
+            // Update cache logic
+          })
+        );
+      });
+
+      addEventListener('fetch', event => {
+        event.respondWith(
+          caches.match(event.request).then(cached => cached || fetch(event.request))
+        );
+      });
+      ```
+  - **AWS CloudFront Example**:
+    - Create a CloudFront distribution with the original source as the origin.
+    - Set cache behavior with a TTL (e.g., 3600 seconds).
+    - Use AWS Lambda@Edge to implement custom polling or cache refresh logic.
+- **React Application Integration**:
+  - Update your application to fetch bundles from the CDN (e.g., `https://cache.yourdomain.com/header.bundle.js`).
+  - Example:
+    ```javascript
+    async function loadBundles() {
+      const headerBundle = await fetch('https://cache.yourdomain.com/header.bundle.js').then(res => res.text());
+      const coreBundle = await fetch('https://cache.yourdomain.com/core.bundle.js').then(res => res.text());
+      // Load and mount bundles
+    }
+    ```
+- **Rsbuild Integration**:
+  - No specific changes needed, but ensure bundle URLs in your code point to the CDN.
+- **Pros**:
+  - Managed infrastructure with high reliability.
+  - Scalable and globally distributed.
+  - Built-in caching and polling mechanisms.
+- **Cons**:
+  - Costs associated with CDN usage.
+  - Limited control over polling logic compared to a custom server.
+  - Dependency on third-party service.
+
+#### 3. **Serverless Cache with Polling (e.g., AWS Lambda + S3)**
+Use a serverless architecture to cache bundles in a storage service like AWS S3, with a Lambda function polling the original source.
+
+- **How it Works**:
+  - A Lambda function periodically fetches bundles from the Original URL Source and stores them in an S3 bucket.
+  - The S3 bucket serves the bundles via public URLs or a CloudFront distribution.
+  - The React application fetches bundles from the S3 bucket or CloudFront URLs.
+- **Implementation**:
+  - **Lambda Function** (polls and updates S3):
+    ```javascript
+    // lambda.js
+    const aws = require('aws-sdk');
+    const axios = require('axios');
+    const s3 = new aws.S3();
+
+    exports.handler = async () => {
+      const bundles = [
+        { url: 'https://original-cdn.com/header.bundle.js', key: 'header.bundle.js' },
+        { url: 'https://original-cdn.com/core.bundle.js', key: 'core.bundle.js' },
+      ];
+
+      for (const bundle of bundles) {
+        try {
+          const response = await axios.get(bundle.url);
+          if (response.status === 200) {
+            await s3.putObject({
+              Bucket: 'your-bucket-name',
+              Key: bundle.key,
+              Body: response.data,
+              ContentType: 'application/javascript',
+            }).promise();
+            console.log(`Updated ${bundle.key}`);
+          }
+        } catch (error) {
+          console.error(`Error updating ${bundle.key}:`, error.message);
+        }
+      }
+    };
+    ```
+    ```javascript
+    const aws = require('aws-sdk');
+    const axios = require('axios');
+    const s3 = new aws.S3();
+
+    exports.handler = async () => {
+      const bundles = [
+        { url: 'https://original-cdn.com/header.bundle.js', key: 'header.bundle.js' },
+        { url: 'https://original-cdn.com/core.bundle.js', key: 'core.bundle.js' },
+      ];
+
+      for (const bundle of bundles) {
+        try {
+          const response = await axios.get(bundle.url);
+          if (response.status === 200) {
+            await s3.putObject({
+              Bucket: 'your-bucket-name',
+              Key: bundle.key,
+              Body: response.data,
+              ContentType: 'application/javascript',
+            }).promise();
+            console.log(`Updated ${bundle.key}`);
+          }
+        } catch (error) {
+          console.error(`Error updating ${bundle.key}:`, error.message);
+        }
+      }
+    };
+    ```
+  - **S3 Configuration**:
+    - Create an S3 bucket and enable public read access or use CloudFront for secure access.
+    - Set up a CloudWatch Events rule to trigger the Lambda function every 5 minutes.
+  - **React Application Integration**:
+    - Fetch bundles from S3 or CloudFront URLs:
+      ```javascript
+      async function loadBundles() {
+        const headerBundle = await fetch('https://your-bucket-name.s3.amazonaws.com/header.bundle.js').then(res => res.text());
+        const coreBundle = await fetch('https://your-bucket-name.s3.amazonaws.com/core.bundle.js').then(res => res.text());
+        // Load and mount bundles
+      }
+      ```
+- **Rsbuild Integration**:
+  - No specific changes needed, but ensure your bundle-loading logic uses the S3/CloudFront URLs.
+- **Pros**:
+  - Serverless, so no need to manage infrastructure.
+  - Cost-effective for low-to-moderate traffic.
+  - Integrates well with AWS ecosystem (e.g., CloudFront for caching).
+- **Cons**:
+  - Requires AWS expertise to set up.
+  - Polling frequency is limited by Lambda execution costs.
+  - S3 public access needs careful security configuration.
+
+#### 4. **Client-Side Proxy with Service Worker**
+Use a service worker in the React application as the Cache URL Source, polling the Original URL Source directly.
+
+- **How it Works**:
+  - A service worker intercepts bundle requests, caches them locally, and periodically polls the Original URL Source for updates.
+  - The React application fetches bundles via the service worker, which serves cached versions if the original source is down.
+- **Implementation**:
+  - **Service Worker** (using Workbox for simplicity):
     ```javascript
     // service-worker.js
     import { precacheAndRoute } from 'workbox-precaching';
     import { registerRoute } from 'workbox-routing';
-    import { CacheFirst } from 'workbox-strategies';
+    import { NetworkFirst } from 'workbox-strategies';
 
-    // Precache bundles
+    // Precache bundles (optional initial cache)
     precacheAndRoute([
-      { url: '/path/to/header.bundle.js', revision: '1' },
-      { url: '/path/to/core.bundle.js', revision: '1' },
+      { url: '/cache/header.bundle.js', revision: '1' },
+      { url: '/cache/core.bundle.js', revision: '1' },
     ]);
 
-    // Cache-first strategy for bundle requests
+    // Network-first strategy with polling
     registerRoute(
       ({ url }) => url.pathname.match(/\.bundle\.js$/),
-      new CacheFirst({
+      new NetworkFirst({
         cacheName: 'bundle-cache',
+        networkTimeoutSeconds: 5,
         plugins: [
           {
-            cacheWillUpdate: async ({ response }) => {
-              if (response && response.status === 200) {
-                return response;
-              }
-              return null;
-            },
+            cacheWillUpdate: async ({ response }) => response && response.status === 200 ? response : null,
           },
         ],
       })
     );
+
+    // Polling logic
+    async function pollBundles() {
+      const urls = [
+        'https://original-cdn.com/header.bundle.js',
+        'https://original-cdn.com/core.bundle.js',
+      ];
+      const cache = await caches.open('bundle-cache');
+      for (const url of urls) {
+        try {
+          const response = await fetch(url);
+          if (response.ok) {
+            await cache.put(url, response.clone());
+            console.log(`Updated cache for ${url}`);
+          }
+        } catch (error) {
+          console.error(`Polling error for ${url}:`, error);
+        }
+      }
+    }
+
+    // Poll every 5 minutes
+    setInterval(pollBundles, 5 * 60 * 1000);
+    self.addEventListener('install', () => pollBundles());
     ```
-  - **Integration with Rsbuild**:
-    - Add the service worker file to your project (e.g., `public/service-worker.js`).
-    - Register the service worker in your React app:
+    ```javascript
+    import { precacheAndRoute } from 'workbox-precaching';
+    import { registerRoute } from 'workbox-routing';
+    import { NetworkFirst } from 'workbox-strategies';
+
+    precacheAndRoute([
+      { url: '/cache/header.bundle.js', revision: '1' },
+      { url: '/cache/core.bundle.js', revision: '1' },
+    ]);
+
+    registerRoute(
+      ({ url }) => url.pathname.match(/\.bundle\.js$/),
+      new NetworkFirst({
+        cacheName: 'bundle-cache',
+        networkTimeoutSeconds: 5,
+        plugins: [
+          {
+            cacheWillUpdate: async ({ response }) => response && response.status === 200 ? response : null,
+          },
+        ],
+      })
+    );
+
+    async function pollBundles() {
+      const urls = [
+        'https://original-cdn.com/header.bundle.js',
+        'https://original-cdn.com/core.bundle.js',
+      ];
+      const cache = await caches.open('bundle-cache');
+      for (const url of urls) {
+        try {
+          const response = await fetch(url);
+          if (response.ok) {
+            await cache.put(url, response.clone());
+            console.log(`Updated cache for ${url}`);
+          }
+        } catch (error) {
+          console.error(`Polling error for ${url}:`, error);
+        }
+      }
+    }
+
+    setInterval(pollBundles, 5 * 60 * 1000);
+    self.addEventListener('install', () => pollBundles());
+    ```
+  - **React Application Integration**:
+    - Register the service worker:
       ```javascript
       if ('serviceWorker' in navigator) {
         window.addEventListener('load', () => {
@@ -49,225 +430,106 @@ Service workers are a powerful way to cache assets like JavaScript bundles for o
         });
       }
       ```
-    - Use Rsbuild’s `output.assets` configuration to ensure the service worker is included in the build output.
-  - **Pros**:
-    - Robust offline support.
-    - Fine-grained control over caching strategies (e.g., CacheFirst, StaleWhileRevalidate).
-    - Can cache other assets (e.g., images, CSS) as needed.
-  - **Cons**:
-    - Requires browser support (most modern browsers support it).
-    - Adds complexity to the build and deployment process.
-    - Cache updates need careful management to avoid serving stale bundles.
+    - Fetch bundles through the service worker:
+      ```javascript
+      async function loadBundles() {
+        const headerBundle = await fetch('https://original-cdn.com/header.bundle.js').then(res => res.text());
+        const coreBundle = await fetch('https://original-cdn.com/core.bundle.js').then(res => res.text());
+        // Load and mount bundles
+      }
+      ```
+  - **Rsbuild Integration**:
+    - Add the service worker to your Rsbuild project’s `public` folder or use a plugin like `@rsbuild/plugin-service-worker`.
+    - Example Rsbuild config:
+      ```javascript
+      // rsbuild.config.js
+      export default {
+        output: {
+          copy: [
+            { from: 'src/service-worker.js', to: 'service-worker.js' },
+          ],
+        },
+      };
+      ```
+- **Pros**:
+  - No additional server infrastructure needed.
+  - Leverages browser caching for redundancy.
+  - Seamless integration with React applications.
+- **Cons**:
+  - Polling from the client increases network usage.
+  - Limited by browser cache storage limits.
+  - Requires service worker support in target browsers.
 
-- **Rsbuild Integration**: Rsbuild supports service workers via plugins like `@rsbuild/plugin-service-worker` or custom configurations. You can add Workbox via a custom plugin:
+### Recommendations
+- **Best Choice for Your Scenario**: **Custom Caching Server** (Option 1) provides the most control over polling and caching logic, making it ideal for your Original URL Source -> Cache URL Source -> React Application setup. It’s flexible, allows custom polling intervals, and can be extended with versioning or fallback logic.
+- **If You Prefer Managed Infrastructure**: **CDN with Caching and Polling** (Option 2) is a great choice for scalability and ease of setup, especially with providers like Cloudflare or AWS CloudFront.
+- **For Serverless**: **Serverless Cache with Polling** (Option 3) is cost-effective and integrates well with AWS-based deployments, but requires more setup.
+- **For Client-Side Simplicity**: **Service Worker** (Option 4) is viable if you want to avoid server-side infrastructure, but it’s less robust due to client-side polling.
+
+### Additional Considerations
+- **Polling Optimization**:
+  - Check for bundle updates using ETags or `If-Modified-Since` headers to avoid unnecessary downloads:
+    ```javascript
+    async function pollBundle(url, key) {
+      const cache = await caches.open('bundle-cache');
+      const cachedResponse = await cache.match(url);
+      const headers = cachedResponse ? { 'If-None-Match': cachedResponse.headers.get('ETag') } : {};
+      const response = await fetch(url, { headers });
+      if (response.status === 200) {
+        await cache.put(url, response.clone());
+      }
+    }
+    ```
+  - Adjust polling frequency based on how often bundles change (e.g., 5 minutes for frequent updates, 1 hour for stable bundles).
+- **Versioning**: Ensure bundles are versioned (e.g., `header.v1.2.3.js`) to avoid serving stale content. Rsbuild’s `filenameHash` can help:
   ```javascript
   // rsbuild.config.js
   export default {
-    plugins: [
-      {
-        name: 'workbox',
-        setup(build) {
-          build.onAfterBuild(() => {
-            // Generate or copy service worker to output directory
-          });
-        },
+    output: {
+      filenameHash: true,
+    },
+  };
+  ```
+- **Security**:
+  - Use Subresource Integrity (SRI) for bundles:
+    ```html
+    <script src="https://cache.yourdomain.com/header.bundle.js" integrity="sha256-..."></script>
+    ```
+  - Secure your cache server with HTTPS and authentication if needed.
+- **Fallback**: Implement a fallback to the Original URL Source or a local copy in the React application if the Cache URL Source fails:
+  ```javascript
+  async function loadBundleWithFallback(cacheUrl, originalUrl) {
+    try {
+      const response = await fetch(cacheUrl);
+      if (response.ok) return response.text();
+    } catch {
+      const response = await fetch(originalUrl);
+      return response.text();
+    }
+  }
+  ```
+
+### Rsbuild-Specific Notes
+- Rsbuild’s `output.copy` or custom plugins can help manage static assets or service workers.
+- If your bundles are dynamically imported, ensure Rsbuild’s `output.dynamicImport` is enabled:
+  ```javascript
+  // rsbuild.config.js
+  export default {
+    output: {
+      dynamicImport: true,
+    },
+  };
+  ```
+- Test the cache server’s URLs in your Rsbuild development environment using a proxy:
+  ```javascript
+  // rsbuild.config.js
+  export default {
+    dev: {
+      proxy: {
+        '/cache': 'http://cache-server:3000',
       },
-    ],
+    },
   };
   ```
 
-### 2. **Browser Cache (HTTP Cache Headers)**
-Leverage the browser’s built-in HTTP caching by configuring appropriate cache headers on your server.
-
-- **How it Works**: Set HTTP headers like `Cache-Control` to instruct the browser to cache the bundles for a specified duration. If the network is down, the browser can serve the cached version.
-- **Implementation**:
-  - Configure your server (e.g., Nginx, AWS S3, or a CDN) to include cache headers for the bundle URLs.
-  - Example `Cache-Control` header:
-    ```
-    Cache-Control: public, max-age=31536000, immutable
-    ```
-    This caches the bundles for one year, assuming they are versioned (e.g., using a hash in the filename like `header.123abc.js`).
-  - If the bundles are hosted on a CDN, configure the CDN to respect these headers.
-  - **Rsbuild Configuration**: Ensure Rsbuild generates versioned bundle filenames (enabled by default with `output.filenameHash`):
-    ```javascript
-    // rsbuild.config.js
-    export default {
-      output: {
-        filenameHash: true, // Ensures unique bundle names for cache busting
-      },
-    };
-    ```
-  - **Pros**:
-    - Simple to implement on the server side.
-    - No additional client-side code required.
-    - Works with any browser supporting HTTP caching.
-  - **Cons**:
-    - Limited control over cache behavior in offline scenarios.
-    - Relies on server configuration, which may not be feasible if you don’t control the bundle hosting.
-    - No granular control for updating cached bundles without changing filenames.
-
-### 3. **LocalStorage or IndexedDB Caching**
-Store the bundles in the browser’s LocalStorage or IndexedDB for manual caching.
-
-- **How it Works**: Fetch the bundles, store their contents in LocalStorage or IndexedDB, and load them dynamically if the network request fails.
-- **Implementation**:
-  - Use a library like **idb** for IndexedDB to simplify storage.
-  - Example for IndexedDB:
-    ```javascript
-    import { openDB } from 'idb';
-
-    async function cacheBundle(url, key) {
-      const response = await fetch(url);
-      if (response.ok) {
-        const bundleText = await response.text();
-        const db = await openDB('bundle-cache', 1, {
-          upgrade(db) {
-            db.createObjectStore('bundles');
-          },
-        });
-        await db.put('bundles', bundleText, key);
-      }
-    }
-
-    async function loadBundle(url, key) {
-      try {
-        const response = await fetch(url);
-        if (response.ok) return response.text();
-      } catch {
-        const db = await openDB('bundle-cache', 1);
-        return db.get('bundles', key);
-      }
-    }
-
-    // Cache bundles on app load
-    cacheBundle('/path/to/header.bundle.js', 'header');
-    cacheBundle('/path/to/core.bundle.js', 'core');
-
-    // Load bundles dynamically
-    async function mountApp() {
-      const headerBundle = await loadBundle('/path/to/header.bundle.js', 'header');
-      const coreBundle = await loadBundle('/path/to/core.bundle.js', 'core');
-      eval(headerBundle); // Note: Use with caution due to security risks
-      eval(coreBundle);
-      // Mount your React app
-    }
-    ```
-  - **Pros**:
-    - Full control over caching logic.
-    - Works in browsers without service worker support.
-  - **Cons**:
-    - LocalStorage has size limits (~5-10 MB), which may be insufficient for large bundles.
-    - IndexedDB is more complex to implement and manage.
-    - Using `eval` for bundle execution is risky and not recommended for production unless sanitized.
-    - Not as seamless as service workers for asset loading.
-
-- **Rsbuild Integration**: No specific Rsbuild configuration is needed, but ensure your bundle URLs are accessible in your app’s code.
-
-### 4. **Application-Level Fallback (Pre-bundled Assets)**
-Bundle the header and core bundles directly into the application’s build output as a fallback.
-
-- **How it Works**: Include the bundles in the Rsbuild output (e.g., in the `public` folder or as part of the main bundle) and load them if the remote URLs are unavailable.
-- **Implementation**:
-  - Copy the bundles to your project’s `public` folder or include them in the build output.
-  - Modify your bundle loading logic to try remote URLs first, then fall back to local assets:
-    ```javascript
-    async function loadBundle(remoteUrl, localPath) {
-      try {
-        const response = await fetch(remoteUrl);
-        if (response.ok) return response.text();
-      } catch {
-        const localResponse = await fetch(localPath);
-        return localResponse.text();
-      }
-    }
-
-    async function mountApp() {
-      const headerBundle = await loadBundle(
-        'https://cdn.example.com/header.bundle.js',
-        '/header.bundle.js'
-      );
-      const coreBundle = await loadBundle(
-        'https://cdn.example.com/core.bundle.js',
-        '/core.bundle.js'
-      );
-      // Load and mount bundles
-    }
-    ```
-  - **Rsbuild Configuration**:
-    ```javascript
-    // rsbuild.config.js
-    export default {
-      output: {
-        copy: [
-          { from: 'path/to/local/header.bundle.js', to: 'header.bundle.js' },
-          { from: 'path/to/local/core.bundle.js', to: 'core.bundle.js' },
-        ],
-      },
-    };
-    ```
-  - **Pros**:
-    - Simple fallback mechanism.
-    - No dependency on browser storage APIs or service workers.
-  - **Cons**:
-    - Increases the initial bundle size if included in the main app.
-    - Requires manual updates to local bundles when remote bundles change.
-    - Not ideal for frequent bundle updates.
-
-### 5. **CDN Fallback with Multiple Sources**
-Use multiple CDN sources for your bundles, falling back to alternative URLs if the primary source fails.
-
-- **How it Works**: Attempt to load bundles from a primary CDN, and if it fails, try a secondary CDN or a local fallback.
-- **Implementation**:
-  ```javascript
-  async function loadBundleWithFallback(urls) {
-    for (const url of urls) {
-      try {
-        const response = await fetch(url);
-        if (response.ok) return response.text();
-      } catch {
-        continue;
-      }
-    }
-    throw new Error('All bundle sources failed');
-  }
-
-  async function mountApp() {
-    const headerBundle = await loadBundleWithFallback([
-      'https://primary-cdn.com/header.bundle.js',
-      'https://secondary-cdn.com/header.bundle.js',
-      '/header.bundle.js',
-    ]);
-    const coreBundle = await loadBundleWithFallback([
-      'https://primary-cdn.com/core.bundle.js',
-      'https://secondary-cdn.com/core.bundle.js',
-      '/core.bundle.js',
-    ]);
-    // Load and mount bundles
-  }
-  ```
-- **Pros**:
-  - Redundancy across multiple CDNs improves reliability.
-  - Can combine with local fallbacks for offline support.
-- **Cons**:
-  - Requires multiple hosting solutions, increasing complexity and cost.
-  - Still depends on network availability unless combined with local fallbacks.
-
-- **Rsbuild Integration**: Ensure Rsbuild outputs any local fallback bundles as described in the Application-Level Fallback section.
-
-### Recommendations
-- **Best Choice for Most Scenarios**: **Service Worker Caching** with Workbox is the most robust and flexible solution. It provides offline support, fine-grained control, and seamless integration with modern web apps. Combine it with HTTP cache headers for optimal performance.
-- **If Simplicity is Key**: Use **Browser Cache (HTTP Cache Headers)** for minimal setup, especially if you control the server or CDN hosting the bundles.
-- **For Edge Cases**: Consider **LocalStorage/IndexedDB** or **Application-Level Fallback** if service workers are not viable (e.g., older browsers or specific constraints).
-- **For High Reliability**: Combine **CDN Fallback** with **Service Worker Caching** to handle both network failures and offline scenarios.
-
-### Rsbuild-Specific Notes
-- Rsbuild’s modular configuration makes it easy to integrate service workers or copy static assets. Use the `output.copy` option for local fallbacks or a custom plugin for service worker generation.
-- If your bundles are dynamically imported, ensure your Rsbuild configuration supports dynamic imports (`output.splitChunks` or `output.dynamicImport`).
-- Test your caching strategy thoroughly, as Rsbuild’s build optimizations (e.g., code splitting) may affect bundle URLs.
-
-### Security Considerations
-- If using `eval` or similar to load bundles (e.g., in LocalStorage/IndexedDB), ensure the bundles are trusted to avoid XSS vulnerabilities.
-- Validate cached content to prevent serving corrupted or malicious bundles.
-- Use Subresource Integrity (SRI) with `<script integrity="sha256-...">` for remote bundles to ensure their authenticity.
-
-If you need a specific code example tailored to your Rsbuild setup or further guidance on a particular approach, let me know your project details (e.g., Rsbuild version, bundle sizes, or deployment environment)!
+If you need a more detailed implementation for a specific option (e.g., deploying the custom server on AWS or integrating with a specific CDN), or if you have details about your infrastructure (e.g., hosting provider, bundle sizes), let me know, and I can tailor the solution further!
