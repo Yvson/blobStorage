@@ -1,6 +1,6 @@
-<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36" version="27.0.9">
+<mxfile host="app.diagrams.net" agent="Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/136.0.0.0 Safari/537.36" version="27.1.1">
   <diagram name="Page-1" id="tMXXNP4Gvz63WRGAOVup">
-    <mxGraphModel dx="4297" dy="2681" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="850" pageHeight="1100" background="none" math="0" shadow="0">
+    <mxGraphModel dx="4558" dy="2843" grid="0" gridSize="10" guides="1" tooltips="1" connect="1" arrows="1" fold="1" page="0" pageScale="1" pageWidth="850" pageHeight="1100" background="none" math="0" shadow="0">
       <root>
         <mxCell id="0" />
         <mxCell id="1" parent="0" />
@@ -222,7 +222,7 @@
         <mxCell id="7N03-Ey8jMxkPSvMAkul-30" value="" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;fontColor=#333333;" parent="1" vertex="1">
           <mxGeometry x="-868" y="1376" width="332" height="191" as="geometry" />
         </mxCell>
-        <mxCell id="A8p5k_EpXWdyYsRO4avQ-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=classic;startFill=1;" parent="1" source="FMqx8AxPasdz-sy3vVXx-2" target="7N03-Ey8jMxkPSvMAkul-34" edge="1">
+        <mxCell id="A8p5k_EpXWdyYsRO4avQ-4" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=classic;startFill=1;endArrow=none;endFill=1;" parent="1" source="FMqx8AxPasdz-sy3vVXx-2" target="7N03-Ey8jMxkPSvMAkul-34" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="7N03-Ey8jMxkPSvMAkul-31" value="Aplicação Monitorada" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#d0cee2;strokeColor=#56517e;fontStyle=1;" parent="1" vertex="1">
@@ -231,7 +231,7 @@
         <mxCell id="7N03-Ey8jMxkPSvMAkul-32" value="Consulta periódica de métricas via&lt;div&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(51, 51, 51), rgb(193, 193, 193));&quot;&gt;solicitação GET HTTP (/metrics) a cada&amp;nbsp;&lt;/span&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(51, 51, 51), rgb(193, 193, 193));&quot;&gt;10 segundos&lt;/span&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#f5f5f5;strokeColor=#666666;fontStyle=1;fontColor=#333333;" parent="1" vertex="1">
           <mxGeometry x="-866" y="1188" width="332" height="100" as="geometry" />
         </mxCell>
-        <mxCell id="A8p5k_EpXWdyYsRO4avQ-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=classic;startFill=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;" parent="1" source="7N03-Ey8jMxkPSvMAkul-33" target="FMqx8AxPasdz-sy3vVXx-2" edge="1">
+        <mxCell id="A8p5k_EpXWdyYsRO4avQ-3" style="edgeStyle=orthogonalEdgeStyle;rounded=0;orthogonalLoop=1;jettySize=auto;html=1;startArrow=classic;startFill=1;entryX=0;entryY=0.5;entryDx=0;entryDy=0;endArrow=none;" parent="1" source="7N03-Ey8jMxkPSvMAkul-33" target="FMqx8AxPasdz-sy3vVXx-2" edge="1">
           <mxGeometry relative="1" as="geometry" />
         </mxCell>
         <mxCell id="7N03-Ey8jMxkPSvMAkul-33" value="Agente de Monitoramento&lt;br&gt;(Protótipo)" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#647687;strokeColor=#314354;fontStyle=1;fontColor=#ffffff;" parent="1" vertex="1">
@@ -282,10 +282,10 @@
         <mxCell id="7N03-Ey8jMxkPSvMAkul-48" value="Aplicação Monitorada" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#dae8fc;strokeColor=#6c8ebf;fontStyle=1" parent="1" vertex="1">
           <mxGeometry x="-2457" y="1431" width="300" height="75" as="geometry" />
         </mxCell>
-        <mxCell id="FMqx8AxPasdz-sy3vVXx-1" value="&lt;span style=&quot;color: rgb(51, 51, 51); font-weight: 700;&quot;&gt;Envio periódico de eventos com dados de métricas&lt;/span&gt;&lt;span style=&quot;color: light-dark(rgb(51, 51, 51), rgb(193, 193, 193)); font-weight: 700; background-color: transparent;&quot;&gt;&amp;nbsp;a cada 10 segundos&lt;/span&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" vertex="1" parent="1">
+        <mxCell id="FMqx8AxPasdz-sy3vVXx-1" value="&lt;span style=&quot;color: rgb(51, 51, 51); font-weight: 700;&quot;&gt;Envio periódico de eventos com dados de métricas&lt;/span&gt;&lt;span style=&quot;color: light-dark(rgb(51, 51, 51), rgb(193, 193, 193)); font-weight: 700; background-color: transparent;&quot;&gt;&amp;nbsp;a cada 10 segundos&lt;/span&gt;" style="text;html=1;align=center;verticalAlign=middle;whiteSpace=wrap;rounded=0;" parent="1" vertex="1">
           <mxGeometry x="-824.5" y="1396" width="247" height="30" as="geometry" />
         </mxCell>
-        <mxCell id="FMqx8AxPasdz-sy3vVXx-2" value="&lt;div&gt;&lt;font&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(255, 255, 255), rgb(18, 18, 18));&quot;&gt;RabbitMQ&lt;/span&gt;&lt;/font&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#76608a;strokeColor=#432D57;fontStyle=1;fontColor=#ffffff;" vertex="1" parent="1">
+        <mxCell id="FMqx8AxPasdz-sy3vVXx-2" value="&lt;div&gt;&lt;font&gt;&lt;span style=&quot;background-color: transparent; color: light-dark(rgb(255, 255, 255), rgb(18, 18, 18));&quot;&gt;RabbitMQ&lt;/span&gt;&lt;/font&gt;&lt;/div&gt;" style="rounded=1;whiteSpace=wrap;html=1;fillColor=#76608a;strokeColor=#432D57;fontStyle=1;fontColor=#ffffff;" parent="1" vertex="1">
           <mxGeometry x="-835" y="1444" width="268" height="100" as="geometry" />
         </mxCell>
       </root>
