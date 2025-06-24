@@ -1,0 +1,13 @@
+# VSCode
+.vscode/
+
+# Logs
+*.log
+
+# Environment files
+.env
+
+# Build output
+dist/
+build/
+out/
