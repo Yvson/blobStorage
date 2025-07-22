@@ -154,3 +154,64 @@ Path: e[1].values_from_list, Value: [9]
 - Use the second function (`find_values_from_list_with_path`) if you need to know where the keys are located in the structure.
 
 If you have a specific dictionary structure or additional requirements (e.g., handling other iterable types, specific output format), let me know, and I can tailor the solution further!
+
+
+To modify the function to return the paths to the `"values_from_list"` keys instead of their values, we can adapt the recursive approach to collect the paths as strings. Each path will represent the sequence of keys and indices needed to access the `"values_from_list"` key in the nested structure. Below is the updated Python function that achieves this.
+
+```python
+def find_values_from_list_paths(data, target_key="values_from_list", result=None, path=None):
+    """
+    Recursively search for a target key in a nested dictionary or list and collect the paths to that key.
+    
+    Args:
+        data: The input dictionary, list, or other data structure to search.
+        target_key: The key to search for (default: "values_from_list").
+        result: List to store the paths to the target key (default: None, initialized as empty list).
+        path: Current path in the data structure (default: None, initialized as empty list).
+    
+    Returns:
+        A list of strings representing the paths to the target key.
+    """
+    if result is None:
+        result = []
+    if path is None:
+        path = []
+    
+    if isinstance(data, dict):
+        for key, value in data.items():
+            current_path = path + [key]
+            if key == target_key:
+                # Join the path as a string, using dots for dict keys and brackets for list indices
+                result.append(".".join(str(p) for p in current_path))
+            if isinstance(value, (dict, list)):
+                find_values_from_list_paths(value, target_key, result, current_path)
+    
+    elif isinstance(data, list):
+        for i, item in enumerate(data):
+            current_path = path + [f"[{i}]"]
+            if isinstance(item, (dict, list)):
+                find_values_from_list_paths(item, target_key, result, current_path)
+    
+    return result
+
+# Example usage
+if __name__ == "__main__":
+    example_data = {
+        "a": 1,
+        "values_from_list": [1, 2, 3],
+        "b": {
+            "c": "test",
+            "values_from_list": ["nested", "values"],
+            "d": [
+                {"values_from_list": [4, 5, 6]},
+                {"e": "other", "values_from_list": [7, 8]}
+            ]
+        },
+        "e": ["string", {"values_from_list": [9]}]
+    }
+
+    # Find all paths to "values_from_list"
+    paths = find_values_from_list_paths(example_data)
+    for path in paths:
+        print(f"Path: {path}")
+```
