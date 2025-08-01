@@ -4,10 +4,11 @@
 URL="https://colaboragov.sei.gov.br/sei/modulos/pesquisa/md_pesq_processo_exibir.php?FPWf5H7A2cVMiAtzZwygexREg6bL0LbNgvUE4YEJCnGtPHCdgfU85G2dEaFHn66TKJEeFfp+kVnEa77aEgyvc0Frsj0Lp/vUZz6rDUN0bt22M35BnhC/5T1bmDosTnxN"
 
 # Number of requests to make
-NUM_REQUESTS=100000
+NUM_REQUESTS=1000000
 
 # Starting number for the parameter #57582910
-START_NUM=57531409
+## LAST INDEX 56063013
+START_NUM=50461101+5610778 # document + increment 
 
 # String to search for in the response
 SEARCH_STRING="50461101"
@@ -19,7 +20,7 @@ do
     CURRENT_NUM=$((START_NUM - i))
     
     # Make the POST request and store the response
-    RESPONSE=$(curl --request POST \
+    RESPONSE=$(curl --insecure --request POST \
         --url $URL \
         --header 'Content-Type: multipart/form-data' \
         --form hdnCId=PESQUISA_PROCESSUAL1752676824289 \
